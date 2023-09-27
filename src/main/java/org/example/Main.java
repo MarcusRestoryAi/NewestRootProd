@@ -1,6 +1,6 @@
 package org.example;
 
-import marcus.kafka.payload.User;
+import marcus.kafka.payload.*;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
@@ -13,19 +13,17 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Properties;
-import java.util.regex.Pattern;
 
 public class Main {
-    public static void main(String[] args) throws MalformedURLException {
+    public static void main(String[] args) throws MalformedURLException, org.json.simple.parser.ParseException {
         System.out.println("Hello world!");
 
         /*
@@ -87,26 +85,55 @@ public class Main {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
-    public static void getDataFromKafka(String topicName) {
+    public static void getDataFromKafka(String topicName) throws org.json.simple.parser.ParseException {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "fetchingGroup");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-        //props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none");
+        //props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.springframework.kafka.support.serializer.JsonDeserializer");
+        props.put("spring.json.trusted.packages", "*");
 
-        Consumer<String, String> consumer = new KafkaConsumer<>(props);
+        Consumer<String, User> consumer = new KafkaConsumer<>(props);
         //consumer.subscribe(Collections.singletonList(topicName));
         consumer.assign(Collections.singletonList(new TopicPartition(topicName, 0)));
 
         consumer.seekToBeginning(consumer.assignment());
 
+        //WhileLoop osm hämtar i JSON format
+        while (true) {
+            ConsumerRecords<String, User> records = consumer.poll(Duration.ofMillis(100));
+            for (ConsumerRecord<String, User> record : records) {
+                System.out.println(record);
+/*
+                //Spara datan tillbaka till ett JSONObject
+                JSONObject fetchData = (JSONObject) new JSONParser().parse(record.value());
+
+                //Skriva ut data
+                System.out.println(fetchData.get("id"));
+                System.out.println(fetchData.get("firstName"));
+                System.out.println(fetchData.get("lastName"));
+
+*/
+            }
+        }
+/*
         while (true) {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
             for (ConsumerRecord<String, String> record : records) {
                 System.out.println(record.value());
-                //record.value(); //JSON strängen
+
+                //Spara datan tillbaka till ett JSONObject
+                JSONObject fetchData = (JSONObject) new JSONParser().parse(record.value());
+
+                //Skriva ut data
+                System.out.println(fetchData.get("id"));
+                System.out.println(fetchData.get("firstName"));
+                System.out.println(fetchData.get("lastName"));
+
+
             }
         }
+*/
     }
 }
