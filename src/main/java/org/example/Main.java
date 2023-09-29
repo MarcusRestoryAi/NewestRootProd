@@ -119,7 +119,8 @@ public class Main {
         sendToWebAPI(myObj);
     }
 
-    public static void sendToWebAPI(JSONObject myObj) {
+    public static String sendToWebAPI(JSONObject myObj) {
+        String returnResp = "";
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost httpPost = new HttpPost("http://localhost:8080/api/v1/kafka/publish");
 
@@ -134,14 +135,16 @@ public class Main {
                 if (responseEntity != null) {
                     String responseString = EntityUtils.toString(responseEntity);
                     System.out.println("Svar från server: " + responseString);
+                    returnResp = responseString;
                 }
             } catch (ParseException e) {
                 throw new RuntimeException(e);
             }
         } catch (IOException e) { e.printStackTrace(); }
+        return returnResp;
     }
 
-    public static void getDataFromKafka(String topicName) {
+    public static ArrayList<User> getDataFromKafka(String topicName) {
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "fetchingGroup");
@@ -205,5 +208,7 @@ public class Main {
             }
         }
 */
+
+        return users;
     }
 }
